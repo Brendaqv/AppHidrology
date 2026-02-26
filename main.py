@@ -4,13 +4,13 @@ import pandas as pd
 import io
 
 # 1. Configuración de página (SIEMPRE debe ser lo primero que ve Streamlit)
-st.set_page_config(page_title="HidroAnálisis SENAMHI", layout="wide")
+st.set_page_config(page_title="MapLecture", layout="wide")
 
 # 2. Título principal
 st.title("📊 Procesador de Precipitaciones Máximas")
 
 # 3. Barra Lateral - Parte Superior
-st.sidebar.title("🌊 HidroTool Punchana")
+st.sidebar.title("MAPLECTURE")
 st.sidebar.markdown("---")
 
 # Subidor de archivos
@@ -38,11 +38,15 @@ if archivos:
         st.sidebar.markdown("---")
         st.sidebar.subheader("🛠️ Desarrollo y Autoría")
         st.sidebar.write(f"""
-        **Autora:** Brenda  
-        **Idea Original:** Análisis de peligros por inundación en Punchana.  
+        **Autora:** Brenda Quiroz 
+        **Idea Original:** Análisis de Precipitaciones.  
         **Colaboración:** Desarrollado con el apoyo de IA (Gemini).
         """)
-        st.sidebar.caption(f"Versión 1.0 | Datos procesados de {anio_inicio} a {anio_fin}")
+
+        if 'df_todo' in locals():
+            st.sidebar.caption(f"Versión 1.0 | Datos de {anio_inicio} a {anio_fin}")
+        else:
+            st.sidebar.caption("Versión 1.0 | Esperando datos...")
 
         # Generación de Matriz y Pestañas
         df_matriz = ana.generar_matriz_maximos(df_todo)
