@@ -1,3 +1,10 @@
+st.set_page_config(
+    page_title="MapLecture | Hidrología",
+    page_icon="🌊",
+    layout="wide", # Esto hace que la app use toda la pantalla, no solo el centro
+    initial_sidebar_state="expanded"
+)
+
 import streamlit as st
 import analisis_ppmaximas as ana
 import pandas as pd
