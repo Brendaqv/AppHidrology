@@ -79,3 +79,22 @@ def generar_graficos(df):
                              color_continuous_scale=px.colors.sequential.Viridis)
     
     return fig_linea, fig_box, fig_hist, fig_scatter
+
+def generar_resumen_validacion(df):
+    # 1. Contar días con datos por mes y año
+    resumen = df.groupby(['año', 'mes']).size().unstack(fill_value=0)
+    
+    # Renombrar columnas de meses
+    meses_nombres = {1:'Ene', 2:'Feb', 3:'Mar', 4:'Abr', 5:'May', 6:'Jun',
+                     7:'Jul', 8:'Ago', 9:'Set', 10:'Oct', 11:'Nov', 12:'Dic'}
+    resumen = resumen.rename(columns=meses_nombres)
+    
+    # 2. Calcular completitud (¿Cuántos meses tienen al menos 28 días?)
+    # Esto ayuda a ver si el año está "sano"
+    return resumen
+
+def extraer_info_estacion(archivo):
+    # El SENAMHI suele poner el nombre en las primeras líneas de los CSV
+    # Para los TXT es más difícil, pero podemos usar el nombre del archivo
+    nombre_archivo = archivo.name
+    return nombre_archivo.replace('.csv', '').replace('.txt', '').upper()
