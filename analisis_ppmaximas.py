@@ -4,6 +4,25 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+# Layout base reutilizable para todos los gráficos
+BASE_LAYOUT = dict(
+    plot_bgcolor='white',
+    paper_bgcolor='white',
+    font=dict(family="Arial, sans-serif", size=14, color="#1a1a1a"),
+    xaxis=dict(
+        showgrid=True, gridcolor='#eeeeee', linecolor='#cccccc',
+        tickfont=dict(size=13, color="#1a1a1a"),
+        title_font=dict(size=14, color="#1a1a1a")
+    ),
+    yaxis=dict(
+        showgrid=True, gridcolor='#eeeeee', linecolor='#cccccc',
+        tickfont=dict(size=13, color="#1a1a1a"),
+        title_font=dict(size=14, color="#1a1a1a")
+    ),
+    margin=dict(l=60, r=40, t=50, b=60),
+    hoverlabel=dict(bgcolor="white", font_size=13, font_family="Arial"),
+)
+
 def procesar_archivos(lista_archivos_subidos):
     lista_df = []
     for archivo in lista_archivos_subidos:
@@ -57,6 +76,7 @@ def generar_graficos(df):
     df_anual = df.groupby('año')['pp'].max().reset_index()
     fig_linea = px.line(df_anual, x='año', y='pp', title='📈 Máximas Precipitaciones Anuales (Histórico)',
                         markers=True, labels={'pp':'PP Máx (mm)', 'año':'Año'})
+    fig_linea.update_layout(**BASE_LAYOUT)
     
     # 2. Boxplot Mensual (Estacionalidad)
     meses_nombres = {1:'Ene', 2:'Feb', 3:'Mar', 4:'Abr', 5:'May', 6:'Jun',
@@ -66,37 +86,32 @@ def generar_graficos(df):
     fig_box = px.box(df_plot, x='Nombre Mes', y='pp', title='📊 Variabilidad Estacional de Lluvias (Boxplot)',
                      category_orders={"Nombre Mes": list(meses_nombres.values())},
                      color='Nombre Mes', labels={'pp':'Lluvia (mm)'})
+    fig_box.update_layout(**BASE_LAYOUT)
     
     # 3. Histograma de Frecuencias (Distribución)
-    # Útil para ver qué tan comunes son las lluvias fuertes (> 50mm)
     fig_hist = px.histogram(df[df['pp'] > 0], x='pp', nbins=50, 
                             title='📉 Distribución de Frecuencias (¿Cuántas veces llueve X cantidad?)',
                             labels={'pp':'Precipitación (mm)', 'count':'Frecuencia (Días)'},
                             color_discrete_sequence=['#00CC96'])
+    fig_hist.update_layout(**BASE_LAYOUT)
 
     # 4. Gráfico de Dispersión Temporal (Todos los datos)
     fig_scatter = px.scatter(df, x='año', y='pp', color='mes',
                              title='☁️ Dispersión Histórica de Eventos Diarios',
                              labels={'pp':'Lluvia Diaria (mm)', 'año':'Año'},
                              color_continuous_scale=px.colors.sequential.Viridis)
+    fig_scatter.update_layout(**BASE_LAYOUT)
     
     return fig_linea, fig_box, fig_hist, fig_scatter
 
 def generar_resumen_validacion(df):
-    # 1. Contar días con datos por mes y año
     resumen = df.groupby(['año', 'mes']).size().unstack(fill_value=0)
-    
-    # Renombrar columnas de meses
     meses_nombres = {1:'Ene', 2:'Feb', 3:'Mar', 4:'Abr', 5:'May', 6:'Jun',
                      7:'Jul', 8:'Ago', 9:'Set', 10:'Oct', 11:'Nov', 12:'Dic'}
     resumen = resumen.rename(columns=meses_nombres)
-    
-    # 2. Calcular completitud (¿Cuántos meses tienen al menos 28 días?)
-    # Esto ayuda a ver si el año está "sano"
     return resumen
 
 def extraer_info_estacion(archivo):
-# Valores por defecto
     info = {
         "Estación": "NO ENCONTRADA", 
         "Departamento": "N/A", 
@@ -108,19 +123,15 @@ def extraer_info_estacion(archivo):
     
     try:
         archivo.seek(0)
-        # Usamos latin-1 para evitar errores con tildes y eñes
         contenido = archivo.getvalue().decode('latin-1').splitlines()
         
         for linea in contenido[:40]:
-            # Dividimos la línea por comas y eliminamos espacios en blanco de cada parte
             partes = [p.strip() for p in linea.split(',')]
             
             for i, fragmento in enumerate(partes):
                 f_up = fragmento.upper()
                 
-                # Buscamos la etiqueta y tomamos el elemento que sigue en la lista
                 if "DEPARTAMENTO" in f_up and (i + 1) < len(partes):
-                    # El valor suele estar después de los dos puntos en la siguiente 'celda'
                     info["Departamento"] = partes[i+1].replace(':', '').strip().upper()
                 
                 elif "PROVINCIA" in f_up and (i + 1) < len(partes):
@@ -130,14 +141,12 @@ def extraer_info_estacion(archivo):
                     info["Distrito"] = partes[i+1].replace(':', '').strip().upper()
                 
                 elif "CODIGO" in f_up or "CÓDIGO" in f_up:
-                    # En tu CSV, el código está después de 'Código :,'
                     info["Código"] = partes[i+1].replace(':', '').strip()
 
-                elif "TIPO" in f_up and (i + 1) < len (partes):
-                    info ["Tipo de estación"] = partes[i+1].replace(':','').strip().upper()
+                elif "TIPO" in f_up and (i + 1) < len(partes):
+                    info["Tipo de estación"] = partes[i+1].replace(':','').strip().upper()
                 
                 elif "ESTACI" in f_up or "ESTACIÓN" in f_up:
-                    # Si la estación no tiene coma, la buscamos por los dos puntos
                     if ":" in fragmento:
                         info["Estación"] = fragmento.split(":")[-1].strip().upper()
                     elif (i + 1) < len(partes):
@@ -153,14 +162,11 @@ def grafico_pp_max_anual(df):
     if df is None or df.empty: 
         return None, 0, 0
     
-    # Agrupamos por año para obtener la máxima anual
     df_anual = df.groupby('año')['pp'].max().reset_index()
     
-    # Cálculos de Percentiles Dinámicos
-    u_medio = df_anual['pp'].quantile(0.50)  # Mediana: Comportamiento habitual
-    u_alto = df_anual['pp'].quantile(0.90)   # Percentil 90: Evento extremo local
+    u_medio = df_anual['pp'].quantile(0.50)
+    u_alto = df_anual['pp'].quantile(0.90)
     
-    # Definición de colores según el umbral de la propia estación
     colores = [
         '#e74c3c' if v > u_alto else '#f1c40f' if v > u_medio else '#2ecc71' 
         for v in df_anual['pp']
@@ -168,16 +174,15 @@ def grafico_pp_max_anual(df):
 
     fig = go.Figure()
 
-    # Línea de umbral extremo (Percentil 90)
     fig.add_hline(
         y=u_alto, 
         line_dash="dash", 
         line_color="red", 
         annotation_text=f"Umbral Crítico (> {u_alto:.1f} mm)",
-        annotation_position="top left"
+        annotation_position="top left",
+        annotation_font=dict(size=13, color="red")
     )
 
-    # Puntos con colores dinámicos
     fig.add_trace(go.Scatter(
         x=df_anual['año'], 
         y=df_anual['pp'],
@@ -189,9 +194,9 @@ def grafico_pp_max_anual(df):
     ))
 
     fig.update_layout(
+        **BASE_LAYOUT,
         xaxis_title="Año",
         yaxis_title="PP Máx (mm)",
-        plot_bgcolor='white',
         hovermode="x"
     )
 
@@ -206,45 +211,39 @@ def grafico_boxplot(df):
     df_plot = df.copy()
     df_plot['Nombre Mes'] = df_plot['mes'].map(meses_nombres)
     
-    # Identificamos el mes con la mediana más alta (el mes "más lluvioso" habitualmente)
     resumen_mensual = df.groupby('mes')['pp'].median()
     mes_critico_num = resumen_mensual.idxmax()
     mes_critico_nombre = meses_nombres[mes_critico_num]
 
-    # Creamos el Boxplot
     fig = px.box(
         df_plot, 
         x='Nombre Mes', 
         y='pp', 
-        points="outliers", # Resalta los eventos extremos (puntos aislados)
+        points="outliers",
         category_orders={"Nombre Mes": list(meses_nombres.values())},
         color='Nombre Mes',
         color_discrete_sequence=px.colors.qualitative.Safe,
         labels={'pp':'Lluvia (mm)', 'Nombre Mes': 'Mes'}
     )
 
-    fig.update_layout(plot_bgcolor='white', showlegend=False)
+    fig.update_layout(**BASE_LAYOUT, showlegend=False)
     
     return fig, mes_critico_nombre
 
 def grafico_histograma(df):
     if df is None or df.empty: return None, 0
     
-    # Filtrar solo días con lluvia para un mejor análisis de frecuencia
     df_lluvia = df[df['pp'] > 0.1] 
-    
-    # Calcular el promedio de las lluvias diarias (solo días lluviosos)
     media_intensidad = df_lluvia['pp'].mean()
     
     fig = px.histogram(
         df_lluvia, 
         x='pp', 
         nbins=50,
-
         labels={'pp':'Precipitación (mm)', 'count':'Número de días'},
         color_discrete_sequence=['#2ecc71']
     )
     
-    fig.update_layout(plot_bgcolor='white', showlegend=False)
+    fig.update_layout(**BASE_LAYOUT, showlegend=False)
     
     return fig, media_intensidad
