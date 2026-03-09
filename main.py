@@ -6,39 +6,154 @@ import calendar
 
 
 # 1. Configuración de página (SIEMPRE debe ser lo primero que ve Streamlit)
-st.set_page_config(page_title="MapLecture", page_icon="💧", layout="wide")
+st.set_page_config(
+    page_title="MapLecture", 
+    page_icon="💧", 
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
 # 2. Estilos personalizados (Paleta MapLecture)
 st.markdown("""
     <style>
-    /* Fondo principal */
-    .stApp {
-        background-color: #ffffff;
-    }
-    
-    /* Sidebar con tono menta suave */
-    [data-testid="stSidebar"] {
-        background-color: #f0f7f4;
-        border-right: 1px solid #e0e0e0;
+
+    /* === FORZAR TEMA CLARO COMPLETO (Windows/Mac/Linux) === */
+
+    html, body, .stApp,
+    [data-testid="stAppViewContainer"],
+    [data-testid="stMain"], .main, .block-container {
+        background-color: #ffffff !important;
+        color: #1a1a1a !important;
     }
 
-    /* Títulos y Botones */
-    h1, h2, h3 {
-        color: #2e4d31 !important; /* Verde oscuro del logo */
+    /* Sidebar */
+    [data-testid="stSidebar"],
+    [data-testid="stSidebar"] > div,
+    [data-testid="stSidebarContent"] {
+        background-color: #f0f7f4 !important;
+        border-right: 1px solid #e0e0e0 !important;
+        color: #1a1a1a !important;
+        min-width: 250px !important;
+        max-width: 300px !important;
     }
-    
-    .stButton>button {
-        background-color: #4CAF50 !important;
-        color: white !important;
-        border: none;
-        font-weight: bold;
-    }
-    
-    /* Ajuste de márgenes del sidebar solicitado anteriormente */
+
     [data-testid="stSidebarUserContent"] {
         padding-top: 0rem !important;
         margin-top: -1.5rem !important;
     }
+
+    [data-testid="stSidebarUserContent"] .stMarkdown,
+    [data-testid="stSidebarUserContent"] .stImage {
+        margin-bottom: -10px;
+    }
+
+    /* Forzar color oscuro solo en texto de contenido, NO en gráficos */
+    .stApp > header, .stApp > div > div > div > div,
+    [data-testid="stMainBlockContainer"] p,
+    [data-testid="stMainBlockContainer"] li,
+    [data-testid="stMainBlockContainer"] span:not([class*="plotly"]),
+    [data-testid="stMainBlockContainer"] label,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] div {
+        color: #1a1a1a !important;
+    }
+
+    /* Excepciones */
+    a, [data-testid="stMarkdownContainer"] a { color: #1155cc !important; }
+
+    /* Botones de acción */
+    .stButton > button {
+        background-color: #6db38a !important;
+        color: white !important;
+        border: none !important;
+        font-weight: 600 !important;
+        border-radius: 6px !important;
+    }
+    .stButton > button:hover {
+        background-color: #3d7a5a !important;
+    }
+
+    /* Botones de descarga */
+    .stDownloadButton > button {
+        background-color: #f4faf7 !important;
+        color: #3d7a5a !important;
+        border: 1.5px solid #6db38a !important;
+        font-weight: 600 !important;
+        border-radius: 6px !important;
+    }
+    .stDownloadButton > button:hover {
+        background-color: #dff0ec !important;
+    }
+
+    /* Link buttons del sidebar */
+    .stLinkButton > a {
+        background-color: #dff0ec !important;
+        color: #3d7a5a !important;
+        border: 1.5px solid #b2d8c8 !important;
+        font-weight: 600 !important;
+        border-radius: 6px !important;
+        text-decoration: none !important;
+    }
+    .stLinkButton > a:hover {
+        background-color: #b2d8c8 !important;
+        color: #2e4d31 !important;
+    }
+    h1, h2, h3,
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3,
+    [data-testid="stMarkdownContainer"] h1,
+    [data-testid="stMarkdownContainer"] h2,
+    [data-testid="stMarkdownContainer"] h3 {
+        color: #2e4d31 !important;
+    }
+
+    /* Tabs */
+    .stTabs [aria-selected="true"] {
+        color: #2e4d31 !important;
+        border-bottom-color: #2e4d31 !important;
+    }
+
+    /* Métricas */
+    [data-testid="stMetric"] { background-color: #ffffff !important; }
+    [data-testid="stMetricValue"] { color: #1a1a1a !important; }
+    [data-testid="stMetricLabel"] { color: #555555 !important; }
+
+    /* Expanders */
+    [data-testid="stExpander"],
+    [data-testid="stExpander"] * { background-color: #ffffff !important; }
+
+    /* Alertas / Info boxes */
+    [data-testid="stAlert"] {
+        background-color: #eef4ff !important;
+        color: #1a1a1a !important;
+    }
+
+    /* File uploader */
+    [data-testid="stFileUploader"],
+    [data-testid="stFileUploaderDropzone"] {
+        background-color: #f9f9f9 !important;
+        padding-top: 0rem;
+    }
+    [data-testid="stFileUploaderDropzoneInstructions"] { display: none; }
+    [data-testid="stFileUploaderDropzone"]::before {
+        content: "📂 Arrastra aquí tus archivos .csv o .txt";
+        display: block;
+        text-align: center;
+        padding: 20px;
+        color: #1f77b4 !important;
+        font-weight: bold;
+    }
+    [data-testid="stFileUploaderDropzone"] button { display: none; }
+
+    /* Tamaño de fuente base */
+    .stApp p, .stApp li, .stApp label,
+    [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li {
+        font-size: 1rem !important;
+        line-height: 1.6 !important;
+    }
+
     </style>
     """, unsafe_allow_html=True)
 
@@ -50,58 +165,8 @@ with st.sidebar:
     st.caption("<p style='text-align: center; color: gray; font-size: 0.8rem; margin-top: -5px'>Educación y Geografía Aplicada</p>", unsafe_allow_html=True)
     st.markdown("---")
 
-# Nuevo intento de personalización CSS
-    st.markdown("""
-        <style>
-        /* 1. Oculta el texto original en inglés (instrucciones pequeñas) */
-        [data-testid="stFileUploaderDropzoneInstructions"] {
-            display: none;
-        }
-        /* 2. Inserta tu propio texto en español */
-        [data-testid="stFileUploaderDropzone"]::before {
-            content: "📂 Arrastra aquí tus archivos .csv o .txt";
-            display: block;
-            text-align: center;
-            padding: 20px;
-            color: #1f77b4; /* Azul profesional */
-            font-weight: bold;
-        }
-
-        /* 3. Oculta el botón gris original 'Browse files' para que no estorbe */
-        [data-testid="stFileUploaderDropzone"] button {
-            display: none;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-    st.markdown("""
-        <style>
-        /* 1. Reduce el margen superior del PANEL LATERAL */
-        [data-testid="stSidebarUserContent"] {
-            padding-top: 0rem !important; /* Ajusta este valor a 0 si lo quieres aún más arriba */
-        }
-
-        /* 2. Opcional: Reduce el espacio entre elementos dentro del sidebar */
-        [data-testid="stSidebarUserContent"] .stMarkdown, 
-        [data-testid="stSidebarUserContent"] .stImage {
-            margin-bottom: -10px;
-        }
-
-        /* 3. Estilo para el cargador de archivos dentro del sidebar para que sea más denso */
-        [data-testid="stFileUploader"] {
-            padding-top: 0rem;
-        }
-        
-        /* 4. Ajustar el ancho del sidebar para que no ocupe tanto espacio horizontal */
-        [data-testid="stSidebar"] {
-            min-width: 250px;
-            max-width: 300px;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
     # Subidor de archivos
-    archivos = st.sidebar.file_uploader("", type=['csv', 'txt'], accept_multiple_files=True)
+    archivos = st.file_uploader("", type=['csv', 'txt'], accept_multiple_files=True)
 
      # 4. Sección de Apoyo (Esta puede estar fuera porque no depende de los datos)
     url_whatsapp = "https://wa.me/51986688805?text=Hola%20MapLecture,%20quiero%20apoyar%20el%20proyecto%20MapDrop"
@@ -149,14 +214,23 @@ if archivos:
         **Colaboración:** Desarrollado con el apoyo de IA (Gemini).
         """)
 
-        if 'df_todo' in locals():
-            st.sidebar.caption(f"Versión 1.0 | Datos de {anio_inicio} a {anio_fin}")
-        else:
-            st.sidebar.caption("Versión 1.0 | Esperando datos...")
+        st.sidebar.caption(f"Versión 1.0 | Datos de {anio_inicio} a {anio_fin}")
 
         # Generación de Matriz y Pestañas
         df_matriz = ana.generar_matriz_maximos(df_todo)
-        tab1, tab2, tab3 = st.tabs(["Validación de datos","📅 Estadística de datos", "📈 Análisis Visual de datos"])
+
+        # --- HEADER PERSISTENTE ---
+        st.markdown(
+            "<div style='display:flex; align-items:center; gap:10px; margin-bottom:0.5rem;'>"
+            "<span style='font-size:1.6rem;'>💧</span>"
+            "<span style='font-size:1.4rem; font-weight:700; color:#3d7a5a; letter-spacing:1px;'>MapDrop</span>"
+            "<span style='font-size:0.9rem; color:#888; margin-left:4px;'>| Procesamiento hidrometeorológico · MapLecture</span>"
+            "</div>",
+            unsafe_allow_html=True
+        )
+        st.markdown("<hr style='margin-top:0; margin-bottom:1rem; border-color:#dff0ec;'>", unsafe_allow_html=True)
+
+        tab1, tab2, tab3 = st.tabs(["🕵️ Validación de datos", "📅 Estadística de datos", "📈 Análisis Visual de datos"])
         
         with tab1:
             st.subheader("🕵️ Valida los datos cargados")
@@ -174,8 +248,8 @@ if archivos:
                 # El nombre de la fila suele ser el Año si es el índice
                 try:
                     anio = int(row.name)
-                except:
-                    anio = 2024 # Año por defecto si hay error
+                except (ValueError, TypeError):
+                    anio = 2024  # Año por defecto si hay error
                 
                 # Lista de meses para comparar (ajusta según tus columnas)
                 meses_dict = {
@@ -205,6 +279,7 @@ if archivos:
             buffer_datos = io.BytesIO()
             with pd.ExcelWriter(buffer_datos, engine='xlsxwriter') as writer:
                 df_todo.to_excel(writer, index=False, sheet_name='Datos_Diarios')
+            buffer_datos.seek(0)
             
             st.download_button(
                 label="Excel de Datos Diarios",
@@ -239,14 +314,14 @@ if archivos:
                 # Si es string, no tiene .strftime, si es datetime sí
                 try:
                     fecha_max_str = fecha_obj.strftime('%d/%m/%Y')
-                except:
+                except (AttributeError, ValueError):
                     fecha_max_str = str(fecha_obj)
             else:
                 # Si no hay columna fecha, la armamos con año-mes-dia si existen
                 try:
                     d = df_todo.loc[idx_max]
                     fecha_max_str = f"{int(d['dia'])}/{int(d['mes'])}/{int(d['año'])}"
-                except:
+                except (KeyError, ValueError, TypeError):
                     fecha_max_str = "No disponible"
 
             # 2. Precipitación Media Anual (Suma de cada año, luego promedio de esas sumas)
@@ -283,6 +358,11 @@ if archivos:
                 st.caption("Promedio de todos los días")
 
             st.markdown("---")
+            st.caption(
+                "📚 **Fuente metodológica:** Chow et al. (1994) *Hidrología Aplicada*; WMO-No.168 (2009). "
+                "Los valores presentados corresponden a estadísticos descriptivos de la serie cargada. "
+                "Para análisis de períodos de retorno se recomienda complementar con distribuciones probabilísticas (Gumbel, Log-Pearson III)."
+            )
             
             # --- MATRIZ Y DESCARGA ---
             st.markdown("### 📥 Precipitaciones Máximas Mensuales")
@@ -292,6 +372,7 @@ if archivos:
             tobol = io.BytesIO()
             with pd.ExcelWriter(tobol, engine='xlsxwriter') as writer:
                 df_matriz.to_excel(writer, index=True, sheet_name='Matriz_PP_Max')
+            tobol.seek(0)
             
             st.download_button(
                 label="📗 Descargar tabla de Precipitaciones Máximas (.xlsx)",
@@ -318,7 +399,40 @@ if archivos:
             2. **Detectar Tendencias:** Identificar si la intensidad de las tormentas está aumentando con el paso de los años.
             3. **Análisis de Riesgo:** Localizar visualmente los meses con mayores picos de precipitación, lo cual es vital para la planificación de contingencias ante activaciones de quebradas o inundaciones.
             """)
-            
+
+            # --- DISCLAIMER ---
+            st.warning(
+                "⚠️ **Aviso importante sobre la interpretación de los umbrales**\n\n"
+                "Los umbrales de riesgo mostrados en esta herramienta se calculan de forma **estadística y relativa**, "
+                "utilizando los percentiles 50 y 90 de la propia serie de datos cargada. "
+                "Esto significa que **series cortas (menos de 15-20 años) pueden subestimar o sobreestimar "
+                "los umbrales reales de criticidad** de una localidad.\n\n"
+                "Por ejemplo, una serie de 9 años podría arrojar un umbral crítico de 150 mm, "
+                "cuando en la realidad local eventos desde 100 mm ya generan riesgo. "
+                "**Los resultados de esta herramienta son de carácter orientativo y exploratorio. "
+                "Siempre deben ser validados y contrastados con profesionales en hidrología, "
+                "gestión de riesgos o ingeniería hidráulica antes de usarse en decisiones técnicas o de planificación.**"
+            )
+
+            # --- METODOLOGÍA (expander con icono) ---
+            with st.expander("📐 ¿Cómo se calculan los umbrales? — Metodología"):
+                st.markdown(
+"**Método utilizado: Percentiles empíricos sobre la serie histórica**\n\n"
+"MapDrop calcula dos umbrales de referencia a partir de la serie de máximas anuales de precipitación:\n\n"
+"* **Umbral Normal (Percentil 50 — Mediana):** El 50% de los años registraron una precipitación máxima anual igual o inferior a este valor. Representa el comportamiento habitual de la estación.\n"
+"* **Umbral Crítico (Percentil 90):** Solo el 10% de los años superaron este valor. Se interpreta como un evento de baja frecuencia y alta energía, con potencial de generar daños.\n\n"
+"**Limitaciones conocidas del método:**\n"
+"* Con series menores a 15 años, los percentiles son estadísticamente inestables.\n"
+"* El método no reemplaza el análisis de frecuencias con distribuciones probabilísticas (Gumbel, Log-Pearson III, GEV) que permiten estimar períodos de retorno formales.\n"
+"* No incorpora información fisiográfica ni de uso de suelo que puede modificar la criticidad real.\n\n"
+"**Referencias bibliográficas:**\n"
+"* Chow, V. T., Maidment, D. R., & Mays, L. W. (1994). *Hidrología Aplicada*. McGraw-Hill.\n"
+"* Ven Te Chow (1964). *Handbook of Applied Hydrology*. McGraw-Hill.\n"
+"* WMO (2009). *Guide to Hydrological Practices, Vol. II* (WMO-No. 168). World Meteorological Organization.\n"
+"* SENAMHI Perú (2023). *Guía de uso de datos hidrometeorológicos*. Lima, Perú. [senamhi.gob.pe](https://www.senamhi.gob.pe)\n"
+"* Kite, G. W. (1977). *Frequency and Risk Analyses in Hydrology*. Water Resources Publications."
+                )
+
             st.divider()
             
         # 1. Generamos el gráfico y obtenemos los umbrales calculados
@@ -333,7 +447,7 @@ if archivos:
                 # --- Tendencia ---
             st.write(f"### Máximas Precipitaciones Anuales entre {anio_inicio} al {anio_fin}")
             st.info(f"""
-                Este análisis se basa en el comportamiento histórico de la estación **{metadata['Estación']}:
+                Este análisis se basa en el comportamiento histórico de la estación **{metadata['Estación']}**:
                 
                 * **Normalidad:** El 50% de los años, la lluvia máxima no supera los **{umbral_medio:.1f} mm**.
                 * **Riesgo Local:** Valores sobre **{umbral_alto:.1f} mm** se consideran extremos para esta zona.
@@ -387,26 +501,20 @@ else:
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("""
-        ### ¿Qué hace MapDrop?
-        Es una herramienta diseñada por **MapLecture** para automatizar la gestión de datos del SENAMHI:
-        * **Estandarización:** Convierte archivos TXT y CSV convencionales a un formato limpio.
-        * **Cálculo Automático:** Genera matrices de precipitaciones máximas mensuales y diarias al instante.
-        * **Auditoría:** Evalúa la calidad de tu serie de datos mediante semáforos de completitud.
-        """)
+        st.markdown("<h3 style='color:#2e4d31; font-size:1.4rem;'>¿Qué hace MapDrop?</h3>", unsafe_allow_html=True)
+        st.markdown("Es una herramienta diseñada por **MapLecture** para automatizar la gestión de datos del SENAMHI:")
+        st.markdown("* **Estandarización:** Convierte archivos TXT y CSV convencionales a un formato limpio.")
+        st.markdown("* **Cálculo Automático:** Genera matrices de precipitaciones máximas mensuales y diarias al instante.")
+        st.markdown("* **Auditoría:** Evalúa la calidad de tu serie de datos mediante semáforos de completitud.")
 
     with col2:
-        st.markdown("""
-        ### ¿Cómo usarla?
-        1. **Prepara tus archivos:** Ten a la mano tus descargas del **SENAMHI**. Puedes obtener datos desde:
-        * [Web de Datos Hidrometeorológicos (Convencionales)](https://www.senamhi.gob.pe/site/descarga-datos/).
-        * [Buscador de Estaciones (Histórico)](https://www.senamhi.gob.pe/?p=estaciones).
-        2. **Carga los datos:** Usa el panel lateral izquierdo para arrastrar uno o varios archivos.
-        3. **Analiza:** Navega por las pestañas para ver la matriz, los gráficos y la validación.
-        4. **Descarga:** Exporta tus resultados directamente a Excel o CSV.
-        """)
+        st.markdown("<h3 style='color:#2e4d31; font-size:1.4rem;'>¿Cómo usarla?</h3>", unsafe_allow_html=True)
+        st.markdown("1. **Prepara tus archivos:** Ten a la mano tus descargas del **SENAMHI**. Puedes obtener datos desde:")
+        st.markdown("   * [Web de Datos Hidrometeorológicos (Convencionales)](https://www.senamhi.gob.pe/site/descarga-datos/)")
+        st.markdown("   * [Buscador de Estaciones (Histórico)](https://www.senamhi.gob.pe/?p=estaciones)")
+        st.markdown("2. **Carga los datos:** Usa el panel lateral izquierdo para arrastrar uno o varios archivos.")
+        st.markdown("3. **Analiza:** Navega por las pestañas para ver la matriz, los gráficos y la validación.")
+        st.markdown("4. **Descarga:** Exporta tus resultados directamente a Excel o CSV.")
 
     st.markdown("---")
     st.info("👈 **Comienza ahora:** Sube tus archivos en la barra lateral para activar el análisis.")
-
-  
