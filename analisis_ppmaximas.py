@@ -96,7 +96,7 @@ def generar_resumen_validacion(df):
     return resumen
 
 def extraer_info_estacion(archivo):
-# Definimos el diccionario SIEMPRE al inicio para evitar KeyErrors
+# Valores por defecto
     info = {
         "Estación": "NO ENCONTRADA", 
         "Departamento": "N/A", 
@@ -108,40 +108,44 @@ def extraer_info_estacion(archivo):
     
     try:
         archivo.seek(0)
-        # En la nube, latin-1 es más seguro para archivos de SENAMHI con caracteres especiales
-        contenido = archivo.read().decode('latin-1', errors='ignore').splitlines()
-        archivo.seek(0) # RESETEO INMEDIATO
+        # Usamos latin-1 para evitar errores con tildes y eñes
+        contenido = archivo.getvalue().decode('latin-1').splitlines()
         
         for linea in contenido[:40]:
-            # Limpiamos la línea de posibles caracteres extraños
-            linea = linea.strip()
-            if not linea: continue
+            # Dividimos la línea por comas y eliminamos espacios en blanco de cada parte
+            partes = [p.strip() for p in linea.split(',')]
             
-            # Buscamos por palabras clave de forma insensible a mayúsculas
-            l_up = linea.upper()
-            
-            # Estrategia: buscar el separador ':' que usa SENAMHI
-            if ":" in linea:
-                partes = linea.split(":")
-                etiqueta = partes[0].upper()
-                valor = partes[1].strip().upper() if len(partes) > 1 else ""
+            for i, fragmento in enumerate(partes):
+                f_up = fragmento.upper()
                 
-                if "ESTACI" in etiqueta or "ESTACIÓN" in etiqueta:
-                    info["Estación"] = valor
-                elif "DEPARTAMENTO" in etiqueta:
-                    info["Departamento"] = valor
-                elif "PROVINCIA" in etiqueta:
-                    info["Provincia"] = valor
-                elif "DISTRITO" in etiqueta:
-                    info["Distrito"] = valor
-                elif "CODIGO" in etiqueta or "CÓDIGO" in etiqueta:
-                    info["Código"] = valor
-                elif "TIPO" in etiqueta:
-                    info["Tipo"] = valor
-                    
-    except Exception as e:
+                # Buscamos la etiqueta y tomamos el elemento que sigue en la lista
+                if "DEPARTAMENTO" in f_up and (i + 1) < len(partes):
+                    # El valor suele estar después de los dos puntos en la siguiente 'celda'
+                    info["Departamento"] = partes[i+1].replace(':', '').strip().upper()
+                
+                elif "PROVINCIA" in f_up and (i + 1) < len(partes):
+                    info["Provincia"] = partes[i+1].replace(':', '').strip().upper()
+                
+                elif "DISTRITO" in f_up and (i + 1) < len(partes):
+                    info["Distrito"] = partes[i+1].replace(':', '').strip().upper()
+                
+                elif "CODIGO" in f_up or "CÓDIGO" in f_up:
+                    # En tu CSV, el código está después de 'Código :,'
+                    info["Código"] = partes[i+1].replace(':', '').strip()
+
+                elif "TIPO" in f_up and (i + 1) < len (partes):
+                    info ["Tipo de estación"] = partes[i+1].replace(':','').strip().upper()
+                
+                elif "ESTACI" in f_up or "ESTACIÓN" in f_up:
+                    # Si la estación no tiene coma, la buscamos por los dos puntos
+                    if ":" in fragmento:
+                        info["Estación"] = fragmento.split(":")[-1].strip().upper()
+                    elif (i + 1) < len(partes):
+                        info["Estación"] = partes[i+1].replace(':', '').strip().upper()
+
         archivo.seek(0)
-        print(f"Error en extracción: {e}")
+    except Exception:
+        archivo.seek(0)
         
     return info
 
@@ -236,6 +240,7 @@ def grafico_histograma(df):
         df_lluvia, 
         x='pp', 
         nbins=50,
+
         labels={'pp':'Precipitación (mm)', 'count':'Número de días'},
         color_discrete_sequence=['#2ecc71']
     )
