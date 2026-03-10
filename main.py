@@ -25,6 +25,11 @@ st.markdown("""
         background-color: #ffffff !important;
         color: #1a1a1a !important;
     }
+    
+    /* Reducir espacio superior */
+    .block-container {
+        padding-top: 1.5rem !important;
+    }
 
     /* Sidebar */
     [data-testid="stSidebar"],
