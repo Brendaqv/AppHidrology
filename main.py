@@ -179,22 +179,35 @@ with st.sidebar:
     
 # 5. Lógica de procesamiento
 if archivos:
-    # Obtenemos la metadata del primer archivo de la lista
-    metadata = ana.extraer_info_estacion(archivos[0])
-    
-   # Mostramos el nombre real extraído
-    st.markdown(f"## 📍 Estación: {metadata['Estación']}")
-    
-   # 3. Fila de información técnica
-    col_dep, col_ubi = st.columns([1, 2])
-    
-    with col_dep:
-        st.write(f"**Departamento:**\n\n{metadata['Departamento']}")
-        
-    with col_ubi:
-        st.write(f"**Provincia / Distrito:**\n\n{metadata['Provincia']} / {metadata['Distrito']}")
+    # Header pequeño — solo visible cuando hay datos cargados
+    st.markdown(
+        "<div style='display:flex; align-items:center; gap:10px; margin-bottom:0.3rem;'>"
+        "<span style='font-size:1.6rem;'>💧</span>"
+        "<span style='font-size:1.4rem; font-weight:700; color:#3d7a5a; letter-spacing:1px;'>MapDrop</span>"
+        "<span style='font-size:0.9rem; color:#888; margin-left:4px;'>| Procesamiento hidrometeorológico · MapLecture</span>"
+        "</div>",
+        unsafe_allow_html=True
+    )
+    st.markdown("<hr style='margin-top:0; margin-bottom:1rem; border-color:#dff0ec;'>", unsafe_allow_html=True)
 
-    st.divider()
+    # Obtenemos la metadata del primer archivo de la lista
+    metadata = ana.extraer_info_estacion(archivos[0], todos_los_archivos=archivos)
+
+    # Bloque de estación — jerarquía visual unificada
+    st.markdown(f"""
+    <div style="background:#f4faf7; border-left:4px solid #6db38a; border-radius:8px; padding:14px 20px; margin-bottom:1rem;">
+        <div style="font-size:0.75rem; color:#3d7a5a; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">
+            📍 Estación activa
+        </div>
+        <div style="font-size:1.5rem; font-weight:800; color:#1a1a1a; margin-bottom:8px;">
+            {metadata['Estación']}
+        </div>
+        <div style="display:flex; gap:40px; font-size:0.9rem; color:#555;">
+            <div><span style="font-weight:600; color:#2e4d31;">Departamento:</span>&nbsp; {metadata['Departamento']}</div>
+            <div><span style="font-weight:600; color:#2e4d31;">Provincia / Distrito:</span>&nbsp; {metadata['Provincia']} / {metadata['Distrito']}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     # --- PROCESAMIENTO DE DATOS ---
     df_todo = ana.procesar_archivos(archivos)
@@ -219,18 +232,7 @@ if archivos:
         # Generación de Matriz y Pestañas
         df_matriz = ana.generar_matriz_maximos(df_todo)
 
-        # --- HEADER PERSISTENTE ---
-        st.markdown(
-            "<div style='display:flex; align-items:center; gap:10px; margin-bottom:0.5rem;'>"
-            "<span style='font-size:1.6rem;'>💧</span>"
-            "<span style='font-size:1.4rem; font-weight:700; color:#3d7a5a; letter-spacing:1px;'>MapDrop</span>"
-            "<span style='font-size:0.9rem; color:#888; margin-left:4px;'>| Procesamiento hidrometeorológico · MapLecture</span>"
-            "</div>",
-            unsafe_allow_html=True
-        )
-        st.markdown("<hr style='margin-top:0; margin-bottom:1rem; border-color:#dff0ec;'>", unsafe_allow_html=True)
-
-        tab1, tab2, tab3 = st.tabs(["🕵️ Validación de datos", "📅 Estadística de datos", "📈 Análisis Visual de datos"])
+        tab1, tab2, tab3 = st.tabs(["🕵️ Validación de datos", "📅 Estadística de datos", "📈 Análisis Gráfico"])
         
         with tab1:
             st.subheader("🕵️ Valida los datos cargados")
@@ -290,82 +292,142 @@ if archivos:
             )
 
         with tab2:
-            st.subheader("📅 Estadística de Precipitaciones Máximas")
-            st.markdown("""
-            Esta matriz presenta los valores de **precipitación máxima de 24 horas** registrados en cada mes. 
-                        
-            **¿Para qué sirve esta información?**
-            * **Identificación de Eventos Extremos:** Permite detectar los años con tormentas excepcionales (como años de El Niño).
-            * **Ingeniería y Diseño:** Es el insumo principal para calcular caudales de diseño en cunetas, alcantarillas y defensas ribereñas.
-            * **Gestión del Riesgo (EVAR):** Ayuda a determinar periodos de retorno y la probabilidad de ocurrencia de inundaciones o activaciones de quebradas.
-            """)
-            st.markdown(f"""**Para la Estación: {metadata['Estación']}**""")
+            st.subheader("📅 Precipitaciones Máximas Mensuales")
+            with st.expander("ℹ️ ¿Para qué sirve esta información?"):
+                st.markdown("""
+                La **precipitación máxima en 24 horas** es el valor más alto registrado en un día dentro de cada mes.
+                Según la *Guía de Prácticas Hidrológicas* de la OMM (Cap. 27 y 28), esta serie es la base del
+                **análisis de frecuencias**, que permite estimar con qué probabilidad se repite un evento extremo
+                y calcular su **período de retorno** (cada cuántos años se espera que ocurra).
+
+                Sus principales aplicaciones son:
+                * **Identificación de eventos extremos:** Detectar años con tormentas excepcionales vinculadas
+                  a fenómenos como El Niño, usando los percentiles de la serie histórica como umbrales de referencia.
+                * **Ingeniería y diseño hidráulico:** Es el insumo directo para calcular caudales de diseño en
+                  cunetas, alcantarillas y defensas ribereñas mediante distribuciones probabilísticas (Gumbel, Log-Pearson III).
+                * **Gestión del riesgo (EVAR):** Permite estimar la probabilidad de ocurrencia de inundaciones
+                  o activaciones de quebradas para un período de retorno dado (10, 25, 50 o 100 años).
+                """)
+                st.markdown(
+                    "**Fuente:** Organización Meteorológica Mundial. (2009). *Guía de prácticas hidrológicas* "
+                    "(6.ª ed., OMM-N° 168, Cap. 27–28). OMM. "
+                    "[📄 Descargar libro](https://www.academia.edu/28131870/GUIDE_YDROLOGICAL_PRACTICES_ADQUISICI%C3%93N_Y_PROCESO_DE_DATOS_AN%C3%81LISIS_PREDICCI%C3%93N_Y_OTRAS_APLICACIONES_GU%C3%8DA_DE_PR%C3%81CTICAS_HIDROL%C3%93GICAS_Bienvenido)"
+                )
 
             # --- CÁLCULOS ESTADÍSTICOS HISTÓRICOS ---
             # 1. Precipitación Máxima Absoluta y su fecha
             max_val = df_todo['pp'].max()
             idx_max = df_todo['pp'].idxmax()
             
-            # Buscamos la columna de fecha (puede ser 'fecha', 'Fecha' o construida)
             col_fecha = next((c for c in df_todo.columns if c.lower() == 'fecha'), None)
-            
             if col_fecha:
                 fecha_obj = df_todo.loc[idx_max, col_fecha]
-                # Si es string, no tiene .strftime, si es datetime sí
                 try:
                     fecha_max_str = fecha_obj.strftime('%d/%m/%Y')
                 except (AttributeError, ValueError):
                     fecha_max_str = str(fecha_obj)
             else:
-                # Si no hay columna fecha, la armamos con año-mes-dia si existen
                 try:
                     d = df_todo.loc[idx_max]
                     fecha_max_str = f"{int(d['dia'])}/{int(d['mes'])}/{int(d['año'])}"
                 except (KeyError, ValueError, TypeError):
                     fecha_max_str = "No disponible"
 
-            # 2. Precipitación Media Anual (Suma de cada año, luego promedio de esas sumas)
             lluvia_anual_total = df_todo.groupby('año')['pp'].sum()
             promedio_anual = lluvia_anual_total.mean()
-
-            # 3. Precipitación Media Diaria (de toda la serie)
             media_diaria = df_todo['pp'].mean()
 
-            # --- PANEL DE MÉTRICAS ---
-            m1, m2, m3 = st.columns(3)
-            with m1:
-                st.metric(
-                    label="Máxima Histórica", 
-                    value=f"{max_val} mm",
-                    help="Es el valor de precipitación más alto registrado en un solo día (24 horas) en toda la historia de la estación. Representa el evento extremo más severo detectado."
-                )
-                st.caption(f"Fecha: {fecha_max_str}")
-                
-            with m2:
-                st.metric(
-                    label="P. Media Anual", 
-                    value=f"{promedio_anual:.2f} mm",
-                    help="Es el promedio de la suma total de lluvia de cada año. Indica cuánta precipitación se espera que caiga en la estación durante un año completo normal."
-                )
-                st.caption("Total anual promedio")
-                
-            with m3:
-                st.metric(
-                    label="P. Media Diaria", 
-                    value=f"{media_diaria:.2f} mm",
-                    help="Es el promedio matemático de todos los registros diarios de la serie, incluyendo los días en que no llovió (0 mm). Refleja la intensidad diaria habitual."
-                )
-                st.caption("Promedio de todos los días")
+            # --- TARJETAS DE MÉTRICAS CON TOOLTIP ---
+            st.markdown("""
+            <style>
+            .mapdrop-metrics-row .metric-card {
+                background: #f4faf7;
+                border: 1px solid #c8e6d4;
+                border-radius: 10px;
+                padding: 18px 20px 14px 20px;
+                position: relative;
+                cursor: default;
+                transition: box-shadow 0.2s;
+                overflow: visible;
+            }
+            .mapdrop-metrics-row .metric-card:hover { box-shadow: 0 3px 12px rgba(61,122,90,0.15); }
+            .mapdrop-metrics-row .metric-icon { font-size: 1.5rem; margin-bottom: 4px; }
+            .mapdrop-metrics-row .metric-label {
+                font-size: 0.78rem;
+                color: #3d7a5a;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 2px;
+            }
+            .mapdrop-metrics-row .metric-value {
+                font-size: 1.9rem;
+                font-weight: 800;
+                color: #1a1a1a;
+                line-height: 1.1;
+            }
+            .mapdrop-metrics-row .metric-sub {
+                font-size: 0.78rem;
+                color: #888;
+                margin-top: 4px;
+            }
+            .mapdrop-metrics-row .metric-tooltip {
+                visibility: hidden;
+                opacity: 0;
+                background: #2e4d31;
+                color: #fff;
+                font-size: 0.8rem;
+                line-height: 1.5;
+                border-radius: 8px;
+                padding: 10px 13px;
+                position: absolute;
+                z-index: 9999;
+                bottom: 110%;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 240px;
+                box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+                transition: opacity 0.2s;
+                pointer-events: none;
+            }
+            .mapdrop-metrics-row .metric-card:hover .metric-tooltip {
+                visibility: visible;
+                opacity: 1;
+            }
+            </style>
+            <div class="mapdrop-metrics-row"></div>
+            """, unsafe_allow_html=True)
 
-            st.markdown("---")
-            st.caption(
-                "📚 **Fuente metodológica:** Chow et al. (1994) *Hidrología Aplicada*; WMO-No.168 (2009). "
-                "Los valores presentados corresponden a estadísticos descriptivos de la serie cargada. "
-                "Para análisis de períodos de retorno se recomienda complementar con distribuciones probabilísticas (Gumbel, Log-Pearson III)."
-            )
-            
+            st.markdown(f"""
+            <div class="mapdrop-metrics-row" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:1rem;">
+                <div class="metric-card">
+                    <div class="metric-tooltip">El valor de precipitación más alto registrado en un solo día (24 h) en toda la historia de la estación. Representa el evento extremo más severo detectado.</div>
+                    <div class="metric-icon">🌧️</div>
+                    <div class="metric-label">Máxima Histórica</div>
+                    <div class="metric-value">{max_val} mm</div>
+                    <div class="metric-sub">📅 Fecha: {fecha_max_str}</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-tooltip">Promedio de la lluvia total acumulada por año. Indica cuánta precipitación se espera en la estación durante un año completo normal.</div>
+                    <div class="metric-icon">📊</div>
+                    <div class="metric-label">Precipitación Media Anual</div>
+                    <div class="metric-value">{promedio_anual:.1f} mm</div>
+                    <div class="metric-sub">Total acumulado promedio por año</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-tooltip">Promedio de todos los registros diarios, incluyendo días sin lluvia (0 mm). Refleja la intensidad diaria habitual de la estación.</div>
+                    <div class="metric-icon">🗓️</div>
+                    <div class="metric-label">Precipitación Media Diaria</div>
+                    <div class="metric-value">{media_diaria:.2f} mm</div>
+                    <div class="metric-sub">Promedio de todos los días de la serie</div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("<div style='margin-top:1.2rem'></div>", unsafe_allow_html=True)
+
             # --- MATRIZ Y DESCARGA ---
-            st.markdown("### 📥 Precipitaciones Máximas Mensuales")
+            st.divider()
             st.write("Haz clic en el botón de abajo para obtener la matriz completa en formato Excel.")
             
             # Preparamos el Excel de la Matriz
@@ -382,111 +444,125 @@ if archivos:
                 use_container_width=True # Botón grande y profesional
             )
 
-            # --- VISTA OPCIONAL (Por transparencia técnica) ---
-            with st.expander("🔍 Ver tabla de datos (Opcional)"):
-                st.write("Esta tabla te permite una visualización rápida de los datos.")
-                st.dataframe(df_matriz, use_container_width=True)
+
             
         with tab3:
-            st.subheader("📈 Descripción Estadística")
-            # --- TEXTO INTRODUCTORIO Y OBJETIVO ---
-            st.markdown(f"""
-            ### **Estación: {metadata['Estación']}**
-            
-            Estos gráficos permiten:
-            
-            1. **Visualizar la Variabilidad:** Observar rápidamente qué tan extremas han sido las lluvias en comparación con el promedio histórico.
-            2. **Detectar Tendencias:** Identificar si la intensidad de las tormentas está aumentando con el paso de los años.
-            3. **Análisis de Riesgo:** Localizar visualmente los meses con mayores picos de precipitación, lo cual es vital para la planificación de contingencias ante activaciones de quebradas o inundaciones.
-            """)
-
-            # --- DISCLAIMER ---
-            st.warning(
-                "⚠️ **Aviso importante sobre la interpretación de los umbrales**\n\n"
-                "Los umbrales de riesgo mostrados en esta herramienta se calculan de forma **estadística y relativa**, "
-                "utilizando los percentiles 50 y 90 de la propia serie de datos cargada. "
-                "Esto significa que **series cortas (menos de 15-20 años) pueden subestimar o sobreestimar "
-                "los umbrales reales de criticidad** de una localidad.\n\n"
-                "Por ejemplo, una serie de 9 años podría arrojar un umbral crítico de 150 mm, "
-                "cuando en la realidad local eventos desde 100 mm ya generan riesgo. "
-                "**Los resultados de esta herramienta son de carácter orientativo y exploratorio. "
-                "Siempre deben ser validados y contrastados con profesionales en hidrología, "
-                "gestión de riesgos o ingeniería hidráulica antes de usarse en decisiones técnicas o de planificación.**"
-            )
-
-            # --- METODOLOGÍA (expander con icono) ---
-            with st.expander("📐 ¿Cómo se calculan los umbrales? — Metodología"):
-                st.markdown(
-"**Método utilizado: Percentiles empíricos sobre la serie histórica**\n\n"
-"MapDrop calcula dos umbrales de referencia a partir de la serie de máximas anuales de precipitación:\n\n"
-"* **Umbral Normal (Percentil 50 — Mediana):** El 50% de los años registraron una precipitación máxima anual igual o inferior a este valor. Representa el comportamiento habitual de la estación.\n"
-"* **Umbral Crítico (Percentil 90):** Solo el 10% de los años superaron este valor. Se interpreta como un evento de baja frecuencia y alta energía, con potencial de generar daños.\n\n"
-"**Limitaciones conocidas del método:**\n"
-"* Con series menores a 15 años, los percentiles son estadísticamente inestables.\n"
-"* El método no reemplaza el análisis de frecuencias con distribuciones probabilísticas (Gumbel, Log-Pearson III, GEV) que permiten estimar períodos de retorno formales.\n"
-"* No incorpora información fisiográfica ni de uso de suelo que puede modificar la criticidad real.\n\n"
-"**Referencias bibliográficas:**\n"
-"* Chow, V. T., Maidment, D. R., & Mays, L. W. (1994). *Hidrología Aplicada*. McGraw-Hill.\n"
-"* Ven Te Chow (1964). *Handbook of Applied Hydrology*. McGraw-Hill.\n"
-"* WMO (2009). *Guide to Hydrological Practices, Vol. II* (WMO-No. 168). World Meteorological Organization.\n"
-"* SENAMHI Perú (2023). *Guía de uso de datos hidrometeorológicos*. Lima, Perú. [senamhi.gob.pe](https://www.senamhi.gob.pe)\n"
-"* Kite, G. W. (1977). *Frequency and Risk Analyses in Hydrology*. Water Resources Publications."
-                )
-
-            st.divider()
-            
-        # 1. Generamos el gráfico y obtenemos los umbrales calculados
+            # --- CÁLCULOS ---
             f1_dinamico, umbral_medio, umbral_alto = ana.grafico_pp_max_anual(df_todo)
-                
-         # 2. Otros cálculos para el texto
+            f2_boxplot, mes_habitual = ana.grafico_boxplot(df_todo)
+            f3_hist, intensidad_media = ana.grafico_histograma(df_todo)
             max_historico = df_todo['pp'].max()
             anio_max = df_todo.loc[df_todo['pp'].idxmax(), 'año']
             veces_promedio = max_historico / umbral_medio if umbral_medio > 0 else 0
             eventos_criticos = len(df_todo[df_todo['pp'] > umbral_alto])
 
-                # --- Tendencia ---
-            st.write(f"### Máximas Precipitaciones Anuales entre {anio_inicio} al {anio_fin}")
-            st.info(f"""
-                Este análisis se basa en el comportamiento histórico de la estación **{metadata['Estación']}**:
-                
-                * **Normalidad:** El 50% de los años, la lluvia máxima no supera los **{umbral_medio:.1f} mm**.
-                * **Riesgo Local:** Valores sobre **{umbral_alto:.1f} mm** se consideran extremos para esta zona.
-                * **Evento Crítico:** El récord de **{max_historico:.1f} mm** (año {int(anio_max)}) superó en **{veces_promedio:.1f} veces** lo habitual.
-                * **Frecuencia:** Se han registrado **{eventos_criticos} eventos** en **umbral alto** en esta serie (superando el Percentil 90).
-                * Esto ayuda a entender qué tan recurrentes son las lluvias extremas para la estación **{metadata['Estación']}**.
-                """)
+            # --- EXPANDER UNIFICADO: CONTEXTO + METODOLOGÍA ---
+            with st.expander("📖 ¿Qué son los umbrales de precipitación y cómo los calcula MapDrop?"):
+                st.markdown(
+                    "En el análisis de frecuencias hidrológicas (OMM, 2009, Cap. 27), un **umbral de precipitación** "
+                    "es un valor de referencia estadístico que permite clasificar los registros históricos según su "
+                    "magnitud y frecuencia de ocurrencia.\n\n"
+                    "MapDrop calcula dos umbrales a partir de la serie histórica cargada:\n\n"
+                    "* **Percentil 50 (Mediana):** Significa que el 50% de los años registró una precipitación máxima "
+                    "anual igual o inferior a este valor. Representa el comportamiento habitual de la estación.\n"
+                    "* **Percentil 90:** Significa que solo el 10% de los años superó este valor. Corresponde a un "
+                    "evento de baja frecuencia de ocurrencia y alta magnitud (OMM, 2009, Cap. 28).\n\n"
+                    "Estos umbrales permiten identificar visualmente qué años presentaron precipitaciones máximas "
+                    "dentro del rango habitual y cuáles se alejaron significativamente de ese comportamiento.\n\n"
+                    "**Consideraciones metodológicas:**\n"
+                    "* Con series menores a 15 años, los percentiles son estadísticamente inestables.\n"
+                    "* Este método no reemplaza el análisis de frecuencias con distribuciones probabilísticas "
+                    "(Gumbel, Log-Pearson III, GEV) para estimar períodos de retorno formales.\n"
+                    "* No incorpora información fisiográfica que pueda condicionar la respuesta hidrológica real.\n\n"
+                    "**Referencia:** Organización Meteorológica Mundial. (2009). *Guía de prácticas hidrológicas* "
+                    "(6.ª ed., OMM-N° 168, Cap. 27–28). OMM. "
+                    "[📄 Descargar libro](https://www.academia.edu/28131870/GUIDE_YDROLOGICAL_PRACTICES_ADQUISICI%C3%93N_Y_PROCESO_DE_DATOS_AN%C3%81LISIS_PREDICCI%C3%93N_Y_OTRAS_APLICACIONES_GU%C3%8DA_DE_PR%C3%81CTICAS_HIDROL%C3%93GICAS_Bienvenido)"
+                )
+
+            # --- AVISO DE LIMITACIONES ---
+            st.warning(
+                "⚠️ **Limitaciones del análisis**\n\n"
+                "Los umbrales se calculan a partir de la propia serie cargada. **Series con menos de 15–20 años "
+                "de registro pueden producir umbrales estadísticamente inestables**, subestimando o sobreestimando "
+                "el comportamiento real de la zona.\n\n"
+                "Los resultados son de **carácter exploratorio**. Su interpretación y aplicación en decisiones "
+                "técnicas requiere la revisión de un profesional especializado en hidrología o ingeniería hidráulica."
+            )
+
+            # --- GRÁFICO 1: MÁXIMAS ANUALES ---
+            st.markdown(f"### Precipitaciones Máximas Anuales — {anio_inicio} al {anio_fin}")
+            st.caption(
+                f"Percentil 50: **{umbral_medio:.1f} mm** · "
+                f"Percentil 90 (línea roja): **{umbral_alto:.1f} mm** · "
+                f"Máximo histórico: **{max_historico:.1f} mm** ({int(anio_max)}) · "
+                f"Eventos sobre Percentil 90: **{eventos_criticos}**"
+            )
             st.plotly_chart(f1_dinamico, use_container_width=True)
-            
+            with st.expander("🔍 ¿Cómo interpretar este gráfico?"):
+                st.markdown(
+                    "Este gráfico muestra la **precipitación máxima registrada en 24 horas por año**. "
+                    "Cada punto representa el valor más alto de un día dentro de ese año.\n\n"
+                    "**¿Qué significan los colores?**\n"
+                    "* 🟢 **Verde:** El año estuvo dentro del comportamiento habitual (por debajo del Percentil 50).\n"
+                    "* 🟡 **Amarillo:** El año superó la mediana pero no alcanzó el Percentil 90. Precipitación por encima de lo habitual.\n"
+                    "* 🔴 **Rojo:** El año superó el Percentil 90. Evento de baja frecuencia de ocurrencia y alta magnitud.\n\n"
+                    "**¿Qué es la línea roja punteada?**\n"
+                    "Representa el **Percentil 90** de la serie. Los años con punto rojo por encima de esa línea "
+                    "son los eventos de mayor magnitud registrados en la estación.\n\n"
+                    "**¿Qué observar?** Identifica si los eventos de alta magnitud se concentran en algún período "
+                    "o si se distribuyen a lo largo de toda la serie. Esto puede indicar variabilidad climática interanual."
+                )
+
             st.divider()
 
-                            # --- BOXPLOT---
-            st.write(f"### Variabilidad Mensual entre {anio_inicio} al {anio_fin}")
-            f2_boxplot, mes_habitual = ana.grafico_boxplot(df_todo)
-
-            st.info(f"""
-                Este Análisis permite visualizar la variabilidad estacional de las lluvias, identificando qué meses presentan los mayores rangos de precipitación y cuáles registran eventos excepcionales (puntos fuera de la caja) que rompen el comportamiento normal de la estación 
-                * **Periodo Crítico:** Históricamente, **{mes_habitual}** es el mes con mayor recurrencia de lluvias significativas en esta zona.
-                * **Eventos Atípicos (Outliers):** Los puntos aislados sobre las cajas representan lluvias que rompieron el **umbral normal** de ese mes.
-                * Esta dispersión ayuda a definir los meses de mayor exposición para la planificación de obras de prevención.
-                """)
-            
+            # --- GRÁFICO 2: BOXPLOT MENSUAL ---
+            st.markdown(f"### Variabilidad Mensual de Precipitaciones — {anio_inicio} al {anio_fin}")
+            st.caption(
+                f"Mes con mayor magnitud de precipitación: **{mes_habitual}** · "
+                "Los puntos aislados sobre las cajas representan registros diarios que superan el rango intercuartílico del mes."
+            )
             st.plotly_chart(f2_boxplot, use_container_width=True)
+            with st.expander("🔍 ¿Cómo interpretar este gráfico?"):
+                st.markdown(
+                    "Este gráfico muestra la **distribución de las precipitaciones diarias por mes** a lo largo "
+                    "de toda la serie histórica. Permite identificar qué meses concentran las lluvias de mayor magnitud.\n\n"
+                    "**¿Qué representa cada caja?**\n"
+                    "* La **línea central** de la caja es la mediana del mes: el 50% de los días registró "
+                    "precipitaciones por debajo de ese valor.\n"
+                    "* Los **bordes de la caja** representan el rango intercuartílico (Percentil 25 al 75): "
+                    "donde se concentra el 50% central de los datos del mes.\n"
+                    "* Las **líneas que se extienden** (bigotes) muestran el rango general sin considerar valores atípicos.\n"
+                    "* Los **puntos aislados** fuera de la caja son registros diarios que superaron el rango "
+                    "esperado para ese mes — eventos de alta magnitud dentro del mes.\n\n"
+                    "**¿Qué observar?** Los meses con cajas más altas y puntos aislados frecuentes son los de "
+                    "mayor variabilidad. Estos corresponden al período de mayor actividad pluviométrica de la estación."
+                )
 
             st.divider()
 
-
-            # 1. Generamos el gráfico
-            f3_hist, intensidad_media = ana.grafico_histograma(df_todo)
-                
-            st.write("### Frecuencia de Intensidades")
-            st.info(f"""
-                Este gráfico muestra cuántas veces se repiten diferentes intensidades de lluvia, permitiendo identificar si la zona tiende a registrar eventos leves frecuentes o si tiene una alta incidencia de tormentas severas.
-                * **Intensidad Promedio:** Cuando llueve en esta estación, el promedio de descarga es de **{intensidad_media:.1f} mm/día**.
-                * **Análisis de Cola:** Los bloques hacia la derecha representan eventos de baja frecuencia pero alta energía, fundamentales para el cálculo de caudales de diseño en **EVAR**.
-                """)
-            
-                # 3. Renderizado
+            # --- GRÁFICO 3: HISTOGRAMA ---
+            st.markdown(f"### Distribución de Frecuencias de Precipitación Diaria — {anio_inicio} al {anio_fin}")
+            st.caption(
+                f"Precipitación media en días con registro > 0.1 mm: **{intensidad_media:.1f} mm/día** · "
+                "Los valores hacia la derecha corresponden a eventos de baja frecuencia y alta magnitud."
+            )
             st.plotly_chart(f3_hist, use_container_width=True)
+            with st.expander("🔍 ¿Cómo interpretar este gráfico?"):
+                st.markdown(
+                    "Este gráfico muestra **con qué frecuencia se repiten distintos rangos de precipitación diaria** "
+                    "en la serie histórica. Solo incluye días con precipitación mayor a 0.1 mm.\n\n"
+                    "**¿Cómo leerlo?**\n"
+                    "* El **eje horizontal** representa la cantidad de precipitación en mm/día.\n"
+                    "* El **eje vertical** indica cuántos días de la serie registraron ese rango de precipitación.\n"
+                    "* Las barras más altas hacia la izquierda indican que la estación registra frecuentemente "
+                    "precipitaciones de baja magnitud.\n"
+                    "* Las barras hacia la derecha — aunque bajas — representan eventos de alta magnitud y "
+                    "baja frecuencia de ocurrencia.\n\n"
+                    "**¿Qué observar?** Si la distribución se extiende con barras hacia la derecha, "
+                    "la estación tiene historial de eventos de precipitación de alta magnitud. "
+                    "Estos valores extremos son los que alimentan el análisis de frecuencias "
+                    "para el cálculo de caudales de diseño (OMM, 2009, Cap. 28)."
+                )
                 
     else:
         st.error("No se pudieron procesar los archivos.")

@@ -111,51 +111,122 @@ def generar_resumen_validacion(df):
     resumen = resumen.rename(columns=meses_nombres)
     return resumen
 
-def extraer_info_estacion(archivo):
+def extraer_info_estacion(archivo, todos_los_archivos=None):
+    """
+    Extrae la info de la estación desde el archivo dado.
+    Si el archivo es un TXT sin cabecera (datos numéricos desde la primera línea),
+    busca automáticamente un CSV en todos_los_archivos y extrae la info de ahí.
+    """
     info = {
-        "Estación": "NO ENCONTRADA", 
-        "Departamento": "N/A", 
-        "Provincia": "N/A", 
-        "Distrito": "N/A", 
+        "Estación": "NO ENCONTRADA",
+        "Departamento": "N/A",
+        "Provincia": "N/A",
+        "Distrito": "N/A",
         "Código": "N/A",
         "Tipo": "N/A"
     }
-    
-    try:
-        archivo.seek(0)
-        contenido = archivo.getvalue().decode('latin-1').splitlines()
-        
-        for linea in contenido[:40]:
+
+    def limpiar(valor):
+        return valor.replace(':', '').replace('"', '').strip()
+
+    def buscar_valor(partes, clave):
+        for i, p in enumerate(partes):
+            if clave in p.upper():
+                if ':' in p:
+                    val = limpiar(p.split(':', 1)[-1])
+                    if val:
+                        return val
+                for j in range(i + 1, min(i + 3, len(partes))):
+                    val = limpiar(partes[j])
+                    if val:
+                        return val
+        return None
+
+    def _leer_contenido(arch):
+        arch.seek(0)
+        raw = arch.getvalue()
+        for encoding in ('utf-8-sig', 'utf-8', 'latin-1'):
+            try:
+                return raw.decode(encoding).splitlines()
+            except UnicodeDecodeError:
+                continue
+        return []
+
+    def _parsear_info(contenido, info):
+        for linea in contenido[:15]:
             partes = [p.strip() for p in linea.split(',')]
-            
-            for i, fragmento in enumerate(partes):
-                f_up = fragmento.upper()
-                
-                if "DEPARTAMENTO" in f_up and (i + 1) < len(partes):
-                    info["Departamento"] = partes[i+1].replace(':', '').strip().upper()
-                
-                elif "PROVINCIA" in f_up and (i + 1) < len(partes):
-                    info["Provincia"] = partes[i+1].replace(':', '').strip().upper()
-                
-                elif "DISTRITO" in f_up and (i + 1) < len(partes):
-                    info["Distrito"] = partes[i+1].replace(':', '').strip().upper()
-                
-                elif "CODIGO" in f_up or "CÓDIGO" in f_up:
-                    info["Código"] = partes[i+1].replace(':', '').strip()
+            linea_up = linea.upper()
 
-                elif "TIPO" in f_up and (i + 1) < len(partes):
-                    info["Tipo de estación"] = partes[i+1].replace(':','').strip().upper()
-                
-                elif "ESTACI" in f_up or "ESTACIÓN" in f_up:
-                    if ":" in fragmento:
-                        info["Estación"] = fragmento.split(":")[-1].strip().upper()
-                    elif (i + 1) < len(partes):
-                        info["Estación"] = partes[i+1].replace(':', '').strip().upper()
+            if "ESTACI" in linea_up and info["Estación"] == "NO ENCONTRADA":
+                val = buscar_valor(partes, "ESTACI")
+                if val:
+                    info["Estación"] = val.upper()
 
+            if "DEPARTAMENTO" in linea_up:
+                val = buscar_valor(partes, "DEPARTAMENTO")
+                if val:
+                    info["Departamento"] = val.upper()
+
+            if "PROVINCIA" in linea_up:
+                val = buscar_valor(partes, "PROVINCIA")
+                if val:
+                    info["Provincia"] = val.upper()
+
+            if "DISTRITO" in linea_up:
+                val = buscar_valor(partes, "DISTRITO")
+                if val:
+                    info["Distrito"] = val.upper()
+
+            if "DIGO" in linea_up:
+                val = buscar_valor(partes, "DIGO")
+                if val:
+                    info["Código"] = val
+
+            if "TIPO" in linea_up and info["Tipo"] == "N/A":
+                val = buscar_valor(partes, "TIPO")
+                if val:
+                    info["Tipo"] = val.upper()
+        return info
+
+    try:
+        contenido = _leer_contenido(archivo)
+
+        # Detectar si el TXT no tiene cabecera (primera línea son datos numéricos)
+        primera_linea = contenido[0].strip() if contenido else ''
+        es_txt_sin_cabecera = (
+            archivo.name.lower().endswith('.txt') and
+            primera_linea and
+            primera_linea[0].isdigit()
+        )
+
+        if es_txt_sin_cabecera:
+            # Fallback: buscar un CSV entre los archivos subidos y extraer info de ahí
+            if todos_los_archivos:
+                for otro in todos_los_archivos:
+                    if otro.name.lower().endswith('.csv'):
+                        try:
+                            contenido_csv = _leer_contenido(otro)
+                            info = _parsear_info(contenido_csv, info)
+                            otro.seek(0)
+                            break
+                        except Exception:
+                            try:
+                                otro.seek(0)
+                            except Exception:
+                                pass
+            archivo.seek(0)
+            return info
+
+        # Flujo normal: parsear el archivo directamente
+        info = _parsear_info(contenido, info)
         archivo.seek(0)
+
     except Exception:
-        archivo.seek(0)
-        
+        try:
+            archivo.seek(0)
+        except Exception:
+            pass
+
     return info
 
 def grafico_pp_max_anual(df):
