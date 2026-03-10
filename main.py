@@ -25,10 +25,17 @@ st.markdown("""
         background-color: #ffffff !important;
         color: #1a1a1a !important;
     }
-    
+
     /* Reducir espacio superior */
     .block-container {
-        padding-top: 2.5 rem !important;
+        padding-top: 2rem !important;
+    }
+    [data-testid="stAppViewBlockContainer"] {
+        padding-top: 2rem !important;
+    }
+    header[data-testid="stHeader"] {
+        height: 0rem !important;
+        min-height: 0rem !important;
     }
 
     /* Sidebar */
@@ -226,12 +233,13 @@ if archivos:
         # --- SECCIÓN DE CRÉDITOS (Movida aquí adentro para que no dé error) ---
         st.sidebar.markdown("---")
         st.sidebar.subheader("🛠️ Desarrollo y Autoría")
-        st.sidebar.write("""
-        **Autora:** Brenda Quiroz  
-        **Colaboración:** Desarrollado con el apoyo de IA (Gemini,Claude).
+        st.sidebar.write(f"""
+        **Autora:** Brenda Quiroz 
+        **Idea Original:** Análisis de Precipitaciones.  
+        **Colaboración:** Desarrollado con el apoyo de IA (Gemini).
         """)
 
-        st.sidebar.caption("Versión 1.0 | 2026")
+        st.sidebar.caption(f"Versión 1.0 | Datos de {anio_inicio} a {anio_fin}")
 
         # Generación de Matriz y Pestañas
         df_matriz = ana.generar_matriz_maximos(df_todo)
