@@ -233,12 +233,12 @@ if archivos:
         # --- SECCIÓN DE CRÉDITOS (Movida aquí adentro para que no dé error) ---
         st.sidebar.markdown("---")
         st.sidebar.subheader("🛠️ Desarrollo y Autoría")
-        st.sidebar.write(f"""
+        st.sidebar.write("""
         **Autora:** Brenda Quiroz   
         **Colaboración:** Desarrollado con el apoyo de IA (Gemini).
         """)
 
-        st.sidebar.caption(f"Versión 1.0 | Datos de {anio_inicio} a {anio_fin}")
+        st.sidebar.caption("Versión 1.0 | 2026")
 
         # Generación de Matriz y Pestañas
         df_matriz = ana.generar_matriz_maximos(df_todo)
